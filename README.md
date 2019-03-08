@@ -22,7 +22,27 @@ cd /usr/share/logstash
 bin/logstash --version
 ```
 
--	데이터 다운로드
+-	데이터 업로드
+
+```shell
+scp -i ~/.ssh/itmare3_rsa /Users/jinwookchung/Desktop/git-note/es-engineer/datasets/blogs.csv itmare3@es01:/home/itmare3/
+scp -i ~/.ssh/itmare3_rsa /Users/jinwookchung/Desktop/git-note/es-engineer/datasets/blogs.conf itmare3@es01:/home/itmare3/
+
+cd /usr/share/logstash
+mkdir datasets
+cd datasets
+mv /home/itmare3/blogs
+mv /home/itmare3/blogs.csv /usr/share/logstash/datasets/
+mv /home/itmare3/blogs.conf /usr/share/logstash/datasets/
+```
+
+-	indexing
+
+```shell
+cd /usr/share/logstash
+vi blogs.conf #==> csv파일 위치로 경로 수정
+bin/logstash -f datasets/blogs.conf
+```
 
 ```shell
 vi ~/.bash_profile
@@ -31,9 +51,33 @@ export LS_HOME=/home/ec2-user/logstash
 PATH=$PATH:$LS_HOME/bin
 ```
 
+<br>
+
 ###### logs_server
 
 -	filebeat를 통해, log 데이터 indexing
+
+-	데이터 업로드
+
+```shell
+scp -i ~/.ssh/itmare3_rsa /Users/jinwookchung/Desktop/git-note/es-engineer/datasets/elastic_blog_curated_access_logs.tar.gz itmare3@es01:/home/itmare3/
+scp -i ~/.ssh/itmare3_rsa /Users/jinwookchung/Desktop/git-note/es-engineer/datasets/filebeat.yml itmare3@es01:/home/itmare3/
+
+cd /etc/filebeat
+mkdir datasets
+mv /home/itmare3/elastic_blog_curated_access_logs.tar.gz /etc/filebeat/datasets
+tar -zxvf /etc/filebeat/datasets/elastic_blog_curated_access_logs.tar.gz
+mv /home/itmare3/filebeat.yml /etc/filebeat/
+```
+
+-	indexing
+
+```shell
+
+cd /home/elastic/
+vi filebeat.yml #==> log파일 경로 수정
+filebeat -e -c filebeat.yml
+```
 
 <br><br>
 
@@ -1178,11 +1222,46 @@ GET blogs_analyzed/_search
 5.The Distributed Model
 -----------------------
 
-###### hello
+###### 클러스터의 상태를 체크해보기
+
+-	클러스터의 이름은?
+-	클러스터의 노드 수는?
+-	현재 마스터 노드는?
+-	클러스터에 있는 index 수는?
+-	logs_server2 index의 샤드 수와 할당된 샤드의 위치(node)는?
 
 <details><summary> 정답 </summary>
 
+```shell
+GET _cluster/state
+
+GET _cat/nodes?v
+GET _cat/indices?v
+GET _cat/shards?v
+GET _cat/shards/logs_server2?v
+```
+
 </details>
+
+<br>
+
+###### 4개의 primary shard와 2개의 replica를 가진 **test** index를 생성하자
+
+<details><summary> 정답 </summary>
+
+```shell
+PUT test
+{
+  "settings": {
+    "number_of_shards": 4,
+    "number_of_replicas": 2
+  }
+}
+```
+
+</details>we
+
+######
 
 6.Troubleshooting Elasticsearch
 -------------------------------
