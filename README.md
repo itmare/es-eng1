@@ -8,9 +8,28 @@ ES1
 0.Indexing data
 ---------------
 
-###### blogs index
+#### blogs index
 
--	logstash를 통해, blog 데이터 indexing
+##### logstash를 통해, blog 데이터 indexing
+
+-	logstash 설치
+
+```shell
+wget https://artifacts.elastic.co/downloads/logstash/logstash-6.4.0.rpm
+rpm -vi logstash-6.4.0.rpm
+
+cd /usr/share/logstash
+bin/logstash --version
+```
+
+-	데이터 다운로드
+
+```shell
+vi ~/.bash_profile
+
+export LS_HOME=/home/ec2-user/logstash
+PATH=$PATH:$LS_HOME/bin
+```
 
 ###### logs_server
 
