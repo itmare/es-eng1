@@ -5,6 +5,19 @@ ES1
 
 ---
 
+0.Indexing data
+---------------
+
+###### blogs index
+
+-	logstash를 통해, blog 데이터 indexing
+
+###### logs_server
+
+-	filebeat를 통해, log 데이터 indexing
+
+<br><br>
+
 1.Elastic Stack Overview
 ------------------------
 
@@ -50,7 +63,7 @@ GET /
 
 <details><summary> 정답 </summary> - 노드는 랜덤생성, 클러스터 이름의 default는 elasticsearch</details>
 
-<br><br>
+<br>
 
 ```shell
 GET /_cat/indices?v
@@ -80,7 +93,7 @@ green  open   .kibana      n59ZjM5KTDiVl7bBXzfROg   1   0          5            
 
 <details><summary> 정답 </summary> - 1594</details>
 
-<br><br>
+<br>
 
 | id | title                  | category    | date          | author_first_name | author_last_name | author_company |
 |----|------------------------|-------------|---------------|-------------------|------------------|----------------|
@@ -126,7 +139,7 @@ green  open   .kibana      n59ZjM5KTDiVl7bBXzfROg   1   0          5            
 
 </details>
 
-<br><br>
+<br>
 
 ###### 상위 json데이터를 indexing하기, id field를 다른 field와 마찬가지로 document에 인덱싱하고, URL에도 추가하기, index이름을 my_blogs로 하고 \_doc과 id 추가하기.
 
@@ -159,7 +172,7 @@ PUT my_blogs/_doc/2
 
 </details>
 
-<br><br>
+<br>
 
 ###### post를 사용해서 다음을 인덱싱해보기
 
@@ -194,7 +207,7 @@ POST my_blogs/_doc/
 
 </details>
 
-<br><br>
+<br>
 
 ###### GET command를 사용해서 id가 1인 document 가져오기, index는 my_blogs, type은 \_doc을 사용)
 
@@ -206,7 +219,7 @@ GET my_blogs/_doc/1
 
 </details>
 
-<br><br>
+<br>
 
 ###### my_blogs 인덱스에서 id 2 document를 삭제하기
 
@@ -228,7 +241,7 @@ DELETE my_blogs/_doc/2
 
 </details>
 
-<br><br>
+<br>
 
 ###### my_blogs 인덱스를 삭제하기
 
@@ -504,7 +517,7 @@ GET blogs/_search
 
 </details>
 
-<br><br>
+<br>
 
 ###### 위의 결과값을 튜닝, **must_not** 옵션을 사용해서, **title** 에 release, releases 또는 released을 포함하는 blog를 제외하고 쿼리하기 (47 hits)
 
@@ -1146,7 +1159,7 @@ GET blogs_analyzed/_search
 5.The Distributed Model
 -----------------------
 
-######
+###### hello
 
 <details><summary> 정답 </summary>
 
