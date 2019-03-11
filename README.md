@@ -1219,6 +1219,8 @@ GET blogs_analyzed/_search
 
 </details>
 
+<br><br>
+
 5.The Distributed Model
 -----------------------
 
@@ -1259,27 +1261,656 @@ PUT test
 }
 ```
 
-</details>we
-
-######
+</details>
 
 6.Troubleshooting Elasticsearch
 -------------------------------
 
-######
+###### 다음을 실행하면 에러가 난다. 이유는?
+
+```shell
+PUT test/_doc/
+{
+  "test": "test"
+}
+```
 
 <details><summary> 정답 </summary>
 
+```shell
+# response
+{
+  "error": "Incorrect HTTP method for uri [/keke/_doc] and method [PUT], allowed: [POST]",
+  "status": 405
+}
+```
+
+-	put으로 indexing할떄: doc ID 필요
+-	POST로 indexing할떄: doc ID없이도 가능
+
+```shell
+PUT test/_doc/1
+{
+  "test":"test"
+}
+# or
+POST test/_doc
+{
+  "test":"test"
+}
+```
+
 </details>
+
+###### 다음을 실행해보고, 에러 분석하기
+
+```shell
+GET test1/_doc/1
+```
+
+<details><summary> 정답 </summary>
+
+```shell
+{
+  "error": {
+    "root_cause": [
+      {
+        "type": "index_not_found_exception",
+        "reason": "no such index",
+        "resource.type": "index_expression",
+        "resource.id": "test1",
+        "index_uuid": "_na_",
+        "index": "test1"
+      }
+    ],
+    "type": "index_not_found_exception",
+    "reason": "no such index",
+    "resource.type": "index_expression",
+    "resource.id": "test1",
+    "index_uuid": "_na_",
+    "index": "test1"
+  },
+  "status": 404
+}
+```
+
+-	**test1** index가 존재하지 않는다.
+-	**test1** index 이름을 변경하던지, **test1** index 생성
+
+</details>
+
+<br>
+
+###### 다음을 실행해보고, 에러 분석하기
+
+```shell
+GET blogs/_search
+{
+  "query": {
+    "match": {
+      "title": "open source software",
+      "minimum_should_match": 2
+    }
+  }
+}
+```
+
+<details><summary> 정답 </summary>
+
+```shell
+# response
+{
+  "error": {
+    "root_cause": [
+      {
+        "type": "parsing_exception",
+        "reason": "[match] query doesn't support multiple fields, found [title] and [minimum_should_match]",
+        "line": 5,
+        "col": 31
+      }
+    ],
+    "type": "parsing_exception",
+    "reason": "[match] query doesn't support multiple fields, found [title] and [minimum_should_match]",
+    "line": 5,
+    "col": 31
+  },
+  "status": 400
+}
+```
+
+-	**match** query는 multiple field를 지원하지 않는다. (title, minimum_should_match)
+
+```shell
+# fixed one
+GET blogs/_search
+{
+  "query":{
+    "match":{
+      "title":{
+        "query":"open source software",
+        "minimum_should_match": 2
+      }
+    }
+  }
+}
+```
+
+</details>
+
+<br>
+
+###### 다음을 실행해보고, 에러 분석하기
+
+```
+GET blogs/_search
+{"query":{"match":{"title":{"query":"open source software,"minimum_should_match":2}}}}
+```
+
+<details><summary> 정답 </summary>
+
+```shell
+# response
+{
+  "error": {
+    "root_cause": [
+      {
+        "type": "json_parse_exception",
+        "reason": "Unexpected character ('m' (code 109)): was expecting comma to separate Object entries\n at [Source: org.elasticsearch.transport.netty4.ByteBufStreamInput@1e3aee93; line: 1, column: 61]"
+      }
+    ],
+    "type": "json_parse_exception",
+    "reason": "Unexpected character ('m' (code 109)): was expecting comma to separate Object entries\n at [Source: org.elasticsearch.transport.netty4.ByteBufStreamInput@1e3aee93; line: 1, column: 61]"
+  },
+  "status": 500
+}
+```
+
+-	response로부터 JSON parse exception이란 것을 확인할 수 있다. JSON 문법 수정 필요
+-	**software** 다음에 double quote 필요</details>
+
+<br>
+
+###### 다음을 실행하고, 에러 분석하기
+
+```shell
+PUT test1/_doc/1
+{
+  "date": "2017-09-10"
+}
+
+PUT test2/_doc/1
+{
+  "date": "September 10, 2017"
+}
+
+GET test*/_search
+{
+  "query": {
+    "match": {
+      "date": "September"
+    }
+  }
+}
+```
+
+<details><summary> 정답 </summary>
+
+```shell
+# response (각각 환경마다 다를 수 있음)
+{
+  "took": 40,
+  "timed_out": false,
+  "_shards": {
+    "total": 10,
+    "successful": 5,
+    "skipped": 0,
+    "failed": 5,
+    "failures": [
+      {
+        "shard": 0,
+        "index": "test1",
+        "node": "NAPM4UaBSiiQdO5Gi65RgQ",
+        "reason": {
+          "type": "query_shard_exception",
+          "reason": """
+failed to create query: {
+  "match" : {
+    "date" : {
+      "query" : "September",
+      "operator" : "OR",
+      "prefix_length" : 0,
+      "max_expansions" : 50,
+      "fuzzy_transpositions" : true,
+      "lenient" : false,
+      "zero_terms_query" : "NONE",
+      "auto_generate_synonyms_phrase_query" : true,
+      "boost" : 1.0
+    }
+  }
+}
+""",
+          "index_uuid": "du5PFM_oQCK72FxhpqVVyA",
+          "index": "test1",
+          "caused_by": {
+            "type": "parse_exception",
+            "reason": "failed to parse date field [September] with format [strict_date_optional_time||epoch_millis]",
+            "caused_by": {
+              "type": "illegal_argument_exception",
+              "reason": "Parse failure at index [0] of [September]"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "hits": {
+    "total": 1,
+    "max_score": 0.2876821,
+    "hits": [
+      {
+        "_index": "test2",
+        "_type": "_doc",
+        "_id": "1",
+        "_score": 0.2876821,
+        "_source": {
+          "date": "September 10, 2017"
+        }
+      }
+    ]
+  }
+}
+```
+
+-	별다른 에러 코드가 없으므로 status code는 200, 하지만 샤드 검색결과를 확인해보면 5개의 성공과 5개의 실패가 있다.
+-	검색에 wildcard(asterisk)가 포함되면 자주 발생하는 상황
+-	이것은 찾음과 못찾음을 말하는 것이 아니라, 검색이 가능과 불가능을 말한다고 할 수 있다.
+-	여기서 **September** 는 **date** 로써 파씽될 수 없다.
+-	**test2** index의 mapping을 확인해 보자
+
+```shell
+GET test2/_mapping
+
+# response
+{
+  "test2": {
+    "mappings": {
+      "_doc": {
+        "properties": {
+          "date": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+-	위의 response에서 볼 수 있는것과 같이, **test2** index에 포함된 **date** field의 type은 **text** 인 것을 확인 할 수 있다.</details>
+
+<br><br>
 
 7.Improving Search Results
 --------------------------
 
-######
+###### **blogs** index의 **content** field와 **title** field에서 "open source" 를 각각 쿼리해보자. 어떤게 더 적절해보이며, 더 많은 hit을 리턴했는가?
 
 <details><summary> 정답 </summary>
 
+```shell
+GET blogs/_search
+{
+  "query":{
+    "match":{
+      "content": "open source"
+    }
+  }
+}
+```
+
+```shell
+GET blogs/_search
+{
+  "query":{
+    "match":{
+      "content": "open source"
+    }
+  }
+}
+```
+
+-	content field에서 쿼리한 결과(hit)이 더 많다.(430 > 6) 적절성은 파악하긴 애매
+
 </details>
+
+<br>
+
+###### **multi-match** query를 사용해서 **content** field와 **title** field에서 "open source"를 쿼리해보자. hit 수의 변화는 어떻게 되나?
+
+<details><summary> 정답 </summary>
+
+```shell
+GET blogs/_search
+{
+  "query":{
+    "multi_match":{
+      "query": "open source",
+      "fields": ["content", "title"]
+    }
+  }
+}
+```
+
+-	hits: 433, 겹치는 결과값이 3개
+
+</details>
+
+###### 2로 boost(^2)한 **title** field를 **multi_match** query에 적용해 보고 이전 결과값과 차이를 비교해보자.
+
+<details><summary> 정답 </summary>
+
+```shell
+GET blogs/_search
+{
+  "query":{
+    "multi_match": {
+      "query": "open source",
+      "fields": ["content", "title^2"]
+    }
+  }
+}
+```
+
+-	score값이 2배가 된다.
+
+</details>
+
+<br>
+
+###### boost를 제거하고 **phrase** query를 포함하는 **multi_match** query를 실행해보자. hit갯수의 변화는?
+
+<details><summary> 정답 </summary>
+
+```shell
+GET blogs/_search
+{
+  "query":{
+    "multi_match":{
+      "fields": ["content", "title"],
+      "type": "phrase"
+    }
+  }
+}
+```
+
+-	이전 결과값과 비교했을때, 더 적은 hit갯수가 리턴된다. (hits: 165)</details>
+
+###### 단어 당 최대 2개의 에디팅을 허용하는 **fuzziness** parameter를 추가해서 실행해보자. hit갯수 변화는?
+
+<details><summary> 정답 </summary>
+
+```shell
+GET blogs/_search
+{
+  "_source": "title",
+  "query": {
+    "match": {
+      "title": {
+        "query":"oven sauce",
+        "fuzziness": 2
+      }
+    }
+  }
+}
+```
+
+</details>
+
+<br>
+
+###### **auto** fuzziness level을 사용해서 쿼리해보고 리턴되는 hit갯수 비교
+
+<details><summary> 정답 </summary>
+
+```shell
+GET blogs/_search
+{
+  "_source": "title",
+  "query": {
+    "match": {
+      "title": {
+        "query":"oven sauce",
+        "fuzziness": "auto"
+      }
+    }
+  }
+}
+```
+
+</details>
+
+<br>
+
+###### **match_phrase** query를 사용, **content** field에서 "elastic stack"을 검색해보자. 그리고 **publish_date** field를 통해 newest부터 oldest 순으로 정렬해보자.
+
+<details><summary> 정답 </summary>
+
+```shell
+GET blogs/_search
+{
+  "query":{
+    "match_phrase":{
+      "content":"elastic stack"
+    }
+  },
+  "sort": [
+    {
+      "publish_date": {
+        "order": "desc"
+      }
+    }
+  ]
+}
+```
+
+</details>
+
+<br>
+
+###### 이전 쿼리를 수정해서 author name 오름차순으로 우선 정렬되게 쿼리해보자
+
+<details><summary> 정답 </summary>
+
+```shell
+GET blogs/_search
+{
+  "_source": ["author","publish_date"],
+  "query":{
+    "match_phrase": {
+      "content": {
+        "query":"elastic stack"
+      }
+    }
+  },
+  "sort": [
+    {
+      "author": {
+        "order": "asc"
+      }
+    },
+    {
+      "publish_date": {
+        "order": "desc"
+      }
+    }
+  ]
+}
+```
+
+</details>
+
+###### 위의 쿼리를 수정해서 결과값 중 3개의 hit만 보기
+
+<details><summary> 정답 </summary>
+
+```shell
+GET blogs/_search
+{
+  "size": 3,
+  "query": {
+    "match_phrase": {
+      "content": {
+        "query" : "elastic stack"
+      }
+    }
+  },
+  "sort": [
+    {
+      "author.keyword": {
+        "order": "asc"
+      }
+    },
+    {
+      "publish_date": {
+        "order": "desc"
+      }
+    }
+  ]
+}
+```
+
+</details>
+
+<br>
+
+###### 위의 쿼리를 수정해서, 3개의 hit을 display할때 4번째 페이지를 볼 수 있게 쿼리해보자.
+
+<details><summary> 정답 </summary>
+
+```shell
+GET blogs/_search
+{
+  "from": 9,
+  "size": 3,
+  "query": {
+    "match_phrase": {
+      "content": {
+        "query" : "elastic stack"
+      }
+    }
+  },
+  "sort": [
+    {
+      "author.keyword": {
+        "order": "asc"
+      }
+    },
+    {
+      "publish_date": {
+        "order": "desc"
+      }
+    }
+  ]
+}
+```
+
+-	**from** 의 default값은 0, 즉 첫번쨰 포지션은 0이다.
+
+</details>
+
+-	[parameter 옵션 참고](https://www.elastic.co/guide/en/elasticsearch/reference/6.6/search-uri-request.html)
+
+###### 위의 쿼리를 수정해서, **title** field와 **content** field에서 <mark> HTML tag를 사용해서 "elastic stack"을 검색했을때 highlight되게 쿼리해 보자 ("reqire_field_match":false일때 모든 field를 highlight한다.)
+
+<details><summary> 정답 </summary>
+
+```shell
+GET blogs/_search
+{
+  "size": 3,
+  "query": {
+    "match_phrase": {
+      "content": {
+        "query" : "elastic stack"
+      }
+    }
+  },
+  "sort": [
+    {
+      "author.keyword": {
+        "order": "asc"
+      }
+    },
+    {
+      "publish_date": {
+        "order": "desc"
+      }
+    }
+  ],
+  "highlight": {
+    "fields": {
+      "title" : {},
+      "content" : {}
+    },
+    "require_field_match": false,
+    "pre_tags": ["<mark>"],
+    "post_tags": ["</mark>"]
+  }
+}
+```
+
+</details>
+
+<br>
+
+###### 위의 쿼리를 수정해서, "elastic stack"을 검색할때 "Engineering" category로써 결과를 필터해 보자. ("match_phrase" block을 지우고 "bool" query에서 다시 시작)
+
+<details><summary> 정답 </summary>
+
+```shell
+GET blogs/_search
+{
+  "size": 3,
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "match_phrase": {
+            "content": "elastic stack"
+          }
+        }
+      ],
+      "filter": {
+        "match":{
+          "category.keyword":"Engineering"
+        }
+      }
+    }
+  },
+  "sort": [
+    {
+      "author.keyword": {
+        "order": "asc"
+      }
+    },
+    {
+      "publish_date": {
+        "order": "desc"
+      }
+    }
+  ]
+}
+```
+
+</details>
+
+<br><br>
 
 8.Aggregating Data
 ------------------
