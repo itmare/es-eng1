@@ -10,9 +10,9 @@ ES1
 0.Indexing data
 ---------------
 
-#### blogs index
+### blogs index
 
-##### logstash를 통해, blog 데이터 indexing
+#### logstash를 통해, blog 데이터 indexing
 
 -	logstash 설치
 
@@ -55,7 +55,7 @@ PATH=$PATH:$LS_HOME/bin
 
 <br>
 
-###### logs_server
+#### logs_server
 
 -	filebeat를 통해, log 데이터 indexing
 
@@ -2385,7 +2385,7 @@ PUT blogs/_doc/1
 DELETE blogs
 ```
 
--	권한이 없는 걸 확인 가능하다.
+-	**blogs_user** 는 권한이 없는 것을 확인 할 수 있다.
 
 <br><br><br>
 
