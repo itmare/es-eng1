@@ -1826,7 +1826,7 @@ GET blogs/_search
 
 -	[parameter 옵션 참고](https://www.elastic.co/guide/en/elasticsearch/reference/6.6/search-uri-request.html)
 
-###### 위의 쿼리를 수정해서, **title** field와 **content** field에서 <mark> HTML tag를 사용해서 "elastic stack"을 검색했을때 highlight되게 쿼리해 보자 ("reqire_field_match":false일때 모든 field를 highlight한다.)
+###### 위의 쿼리를 수정해서, **title** field와 **content** field에서 &lt;mark&gt; HTML tag를 사용해서 "elastic stack"을 검색했을때 highlight되게 쿼리해 보자 ("reqire_field_match":false일때 모든 field를 highlight한다.)
 
 <details><summary> 정답 </summary>
 
@@ -1866,6 +1866,11 @@ GET blogs/_search
 ```
 
 </details>
+
+##### field와 field.type의 차이점
+
+-	field: text를 검색하기 위해 사용된다.
+-	field.keyword: filter, aggregation, sort 등을 사용하기 위해 사용된다.
 
 <br>
 
@@ -1915,9 +1920,50 @@ GET blogs/_search
 8.Aggregating Data
 ------------------
 
-######
+###### "logs_server*" indices에서 몇종류의 blog URL이 존재하는지 검색해보자. (originalUrl field, 대략 36,000개의 결과값이 나온다.)
 
 <details><summary> 정답 </summary>
+
+```shell
+GET logs_server*/_search
+{
+
+  "aggs": {
+    "my_url_value_count": {
+      "cardinality": {
+        "field": "originalUrl.keyword"
+      }
+    }
+  }
+}
+```
+
+</details>
+
+<br>
+
+###### 위의 쿼리를 수정해서, **originalUrl** field에 "elastic" 단어를 포함하는 document들을 포함하는 집단을 display하기 위해 쿼리해 보자
+
+<details><summary> 정답 </summary>
+
+```shell
+GET logs_server*/_search
+{
+  "query":{
+    "match":{
+      "originalUrl":"elastic"
+    }
+  },
+
+  "aggs": {
+    "my_url_value_count": {
+      "cardinality": {
+        "field": "originalUrl.keyword"
+      }
+    }
+  }
+}
+```
 
 </details>
 
