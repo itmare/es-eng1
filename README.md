@@ -7,8 +7,8 @@ ES1
 
 <br><br>
 
-0.Indexing data
----------------
+1.Elastic Stack Overview
+------------------------
 
 ### blogs index
 
@@ -82,9 +82,6 @@ filebeat -e -c filebeat.yml
 ```
 
 <br><br>
-
-1.Elastic Stack Overview
-------------------------
 
 2.Getting Started with Elasticsearch
 ------------------------------------
