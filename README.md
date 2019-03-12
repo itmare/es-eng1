@@ -2434,6 +2434,8 @@ DELETE blogs
 Exam Objectives
 ---------------
 
+<br><br>
+
 To be fully prepared for the Elastic Certified Engineer exam, candidates should be able to complete all of the following exam objectives with only the assistance of the [Elastic documentation](https://www.elastic.co/guide/index.html):
 
 <br>
