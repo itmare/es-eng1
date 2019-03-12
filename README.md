@@ -5,6 +5,8 @@ ES1
 
 ---
 
+<br><br>
+
 0.Indexing data
 ---------------
 
@@ -1920,7 +1922,7 @@ GET blogs/_search
 8.Aggregating Data
 ------------------
 
-###### "logs_server*" indices에서 몇종류의 blog URL이 존재하는지 검색해보자. (originalUrl field, 대략 36,000개의 결과값이 나온다.)
+###### "logs_server*" indices에서 몇종류의 blog URL이 존재하는지 검색해보자. (originalUrl field, value: 36,955)
 
 <details><summary> 정답 </summary>
 
@@ -1942,7 +1944,7 @@ GET logs_server*/_search
 
 <br>
 
-###### 위의 쿼리를 수정해서, **originalUrl** field에 "elastic" 단어를 포함하는 document들을 포함하는 집단을 display하기 위해 쿼리해 보자
+###### 위의 쿼리를 수정해서, **originalUrl** field에 "elastic" 단어를 포함하는 document들을 포함하는 집단을 display하기 위해 쿼리해 보자 (value: 4557)
 
 <details><summary> 정답 </summary>
 
@@ -1967,19 +1969,428 @@ GET logs_server*/_search
 
 </details>
 
-9.Securing Elasticsearch
-------------------------
-
-######
+###### northernmost 지역 값을 요청 ("geoip.location.lat" field 사용)
 
 <details><summary> 정답 </summary>
 
+-	경도(lat)가 가장 높은 값 찾아서, 갯수 확인
+
+```shell
+GET logs_server*/_search
+{
+  "_source": "geoip.location.lat",
+  "size": 0,
+  "aggs": {
+    "my_northernmost_request": {
+      "max": {
+        "field": "geoip.location.lat"
+      }
+    }
+  }
+}
+```
+
 </details>
+
+<br>
+
+###### 이전 쿼리의 결과값을 사용해서, northern-most area로부터 log event를 리턴해 보자
+
+<details><summary> 정답 </summary>
+
+```shell
+GET logs_server*/_search
+{
+  "query":{
+    "range": {
+      "geoip.location.lat": {
+        "gte": 72
+      }
+    }
+
+  }
+}
+```
+
+</details>
+
+###### **status_code** field는 얼마나 많은 distinct value를 가지고 있나?
+
+<details><summary> 정답 </summary>
+
+-	**AGG_TYPE** cardinality 사용
+
+```shell
+GET logs_server*/_search
+{
+  "size":0,
+  "aggs": {
+    "distinct_status_code_count": {
+      "cardinality": {
+        "field": "status_code"
+      }
+    }
+  }
+}
+```
+
+</details>
+
+<br>
+
+###### 이전 agg를 기반으로, **status_code** 는 6개의 disdinct한 값을 가지고 있다. 6개 값 각각에 얼마나 많은 request가 있나?
+
+<details><summary> 정답 </summary>
+
+-	**AGG_TYPE** terms 사용
+
+```shell
+GET logs_server*/_search
+{
+  "size":0,
+  "aggs": {
+    "status_code_buckets": {
+      "terms": {
+        "field": "status_code"
+      }
+    }
+  }
+}
+```
+
+</details>
+
+<br>
+
+###### **terms** agg 는 기본적으로 **doc_count** 로 정렬된다. **terms** 가 알파벳순으로 정렬되게 위의 검색을 변경해보자
+
+<details><summary> 정답 </summary>
+
+```shell
+GET logs_server*/_search
+{
+  "size":0,
+  "aggs": {
+    "status_code_buckets": {
+      "terms": {
+        "field": "status_code",
+        "order": {
+          "_key": "asc"
+        }
+      }
+    }
+  }
+}
+```
+
+</details>
+
+###### 아래의 쿼리는 165 hit이다. 이 쿼리에 aggregation을 추가해서 각 category별로 몇개의 hit을 가지고 있는지 확인해보자
+
+```shell
+GET blogs/_search
+{
+  "query": {
+    "bool": {
+      "must": {
+        "multi_match": {
+          "query": "open source",
+          "fields": [
+            "title^2",
+            "content"
+          ],
+          "type": "phrase"
+        }
+      }
+    }
+  },
+  "highlight": {
+    "fields": {
+      "title": {},
+      "content": {}
+    },
+    "require_field_match": false,
+    "pre_tags": [
+      "<mark>"
+    ],
+    "post_tags": [
+      "</mark>"
+    ]
+  }
+}
+```
+
+<details><summary> 정답 </summary>
+
+```shell
+GET blogs/_search
+{
+  "query": {
+    "bool": {
+      "must": {
+        "multi_match": {
+          "query": "open source",
+          "fields": [
+            "title^2",
+            "content"
+          ],
+          "type": "phrase"
+        }
+      }
+    }
+  },
+  "highlight": {
+    "fields": {
+      "title": {},
+      "content": {}
+    },
+    "require_field_match": false,
+    "pre_tags": [
+      "<mark>"
+    ],
+    "post_tags": [
+      "</mark>"
+    ]
+  },
+  "aggs": {
+    "category_buckets": {
+      "terms": {
+        "field": "category.keyword",
+        "size": 10
+      }
+    }
+  }
+}
+```
+
+</details>
+
+<br>
+
+###### 주(week)마다 얼마나 많은 log request가 있나?
+
+<details><summary> 정답 </summary>
+
+```shell
+GET logs_server*/_search
+{
+  "size":0,
+  "aggs": {
+    "logs_by_week": {
+      "date_histogram": {
+        "field": "@timestamp",
+        "interval": "week"
+      }
+    }
+  }
+}
+```
+
+</details>
+
+<br>
+
+###### 각 주의 log request에서 **status_code** field 별로 (위에서 확인했던 6개의 코드) 얼마나 많은 request를 받았는지 확인해보자
+
+<details><summary> 정답 </summary>
+
+```shell
+GET logs_server*/_search
+{
+  "size": 0,
+  "aggs": {
+    "logs_by_week": {
+      "date_histogram": {
+        "field": "@timestamp",
+        "interval": "week"
+      },
+      "aggs": {
+        "status_code_buckets": {
+          "terms": {
+            "field": "status_code"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+</details>
+
+<br>
+
+###### suitable level of accuracy를 delivery하고 있음을 확실히 하기 위해, **status_code** field의 **term** query에 있는 **show_term_doc_count_error** 를 enable해보자.
+
+<details><summary> 정답 </summary>
+
+```shell
+GET logs_server*/_search
+{
+  "size": 0,
+  "aggs": {
+    "logs_by_week": {
+      "date_histogram": {
+        "field": "@timestamp",
+        "interval": "week"
+      },
+      "aggs": {
+        "status_code_buckets": {
+          "terms": {
+            "field": "status_code",
+            "show_term_doc_count_error": true
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+</details>
+
+<br>
+
+###### log request를 도시별로 가장 많이 받은 순으로 top 20를 검색해보자
+
+<details><summary> 정답 </summary>
+
+```shell
+GET logs_server*/_search
+{
+  "size":0,
+  "aggs": {
+    "city_buckets": {
+      "terms": {
+        "field": "geoip.city_name.keyword",
+        "size": 20
+      }
+    }
+  }
+}
+```
+
+</details>
+
+<br>
+
+###### city aggregation이 정확한지 확인해보자
+
+<details><summary> 정답 </summary>
+
+```shell
+GET logs_server*/_search
+{
+  "size":0,
+  "aggs": {
+    "city_buckets": {
+      "terms": {
+        "field": "geoip.city_name.keyword",
+        "size": 20,
+        "show_term_doc_count_error": true
+      }
+    }
+  }
+}
+```
+
+</details>
+
+<br><br>
+
+9.Securing Elasticsearch
+------------------------
+
+-	elasticsearch가 실행되고 있는 모든 노드 정지, kibana 정지
+
+-	다음을 elasticsearch.yml 모든 노드에 추가
+
+```shell
+xpack.security.enabled: true
+```
+
+-	모든 노드 시작
+
+-	`curl 'localhost:9200/_cat/nodes?pretty'` 실행하면
+
+```shell
+[root@es01 elasticsearch]# curl 'localhost:9200/_cat/nodes?pretty'
+{
+  "error" : {
+    "root_cause" : [
+      {
+        "type" : "security_exception",
+        "reason" : "missing authentication token for REST request [/_cat/nodes?pretty]",
+        "header" : {
+          "WWW-Authenticate" : "Basic realm=\"security\" charset=\"UTF-8\""
+        }
+      }
+    ],
+    "type" : "security_exception",
+    "reason" : "missing authentication token for REST request [/_cat/nodes?pretty]",
+    "header" : {
+      "WWW-Authenticate" : "Basic realm=\"security\" charset=\"UTF-8\""
+    }
+  },
+  "status" : 401
+}
+```
+
+-	credential 만들어야함
+
+-	다음을 실행
+
+```shell
+cd /usr/share/elasticsearch
+bin/elasticsearch-setup-passwords interactive
+```
+
+<img src='./pictures/xpack-password-set.png'>
+
+-	다음을 kibana.yml에 추가
+
+```shell
+elasticsearch.username:"elastic"
+elasticsearch.password:"<PASSWORD>"
+```
+
+-	kibana 재시작
+
+<img src='./pictures/xpack-user.png'>
+
+<img src='./pictures/xpack-newuser1.png'>
+
+<img src='./pictures/xpack-newuser2.png'>
+
+<img src='./pictures/xpack-newrole1.png'>
+
+<img src='./pictures/xpack-newrole2.png'>
+
+-	로그아웃하고 방금 생성한 **blogs_user** 로 로그인
+
+<br><br>
+
+-	아래의 command 실행해보자
+
+```shell
+GET blogs*/_search
+
+GET _cat/indices
+
+PUT blogs/_doc/1
+{
+  "a": "b"
+}
+
+DELETE blogs
+```
+
+-	권한이 없는 걸 확인 가능하다.
+
+<br><br><br>
 
 10.Best Practices
 -----------------
-
-######
 
 <details><summary> 정답 </summary>
 
@@ -1995,8 +2406,14 @@ GET logs_server*/_search
 
 .
 
+---
+
 ES2
 ===
+
+---
+
+<br><br>
 
 1.Field Modeling
 ----------------
