@@ -2431,8 +2431,6 @@ DELETE blogs
 
 ---
 
----
-
 Exam Objectives
 ---------------
 
