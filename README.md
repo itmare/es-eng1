@@ -2406,46 +2406,6 @@ DELETE blogs
 
 .
 
----
-
-ES2
-===
-
----
-
-<br><br>
-
-1.Field Modeling
-----------------
-
-2.Fixing Data
--------------
-
-3.Advanced Search & Aggregations
---------------------------------
-
-4.Cluster Management
---------------------
-
-5.Capacity Planning
--------------------
-
-6.Elasticsearch Internals
--------------------------
-
-7.Document Modeling
--------------------
-
-8.Monitoring and Alerting
--------------------------
-
-9.From Dev to Production
-------------------------
-
-.
-
-.
-
 .
 
 .
