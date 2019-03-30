@@ -81,7 +81,7 @@ vi filebeat.yml #==> log파일 경로 수정
 filebeat -e -c filebeat.yml
 ```
 
-<br><br>
+<br><br><br><br><br>
 
 2.Getting Started with Elasticsearch
 ------------------------------------
@@ -315,7 +315,7 @@ DELETE my_blogs
 
 </details>
 
-<br><br><br><br>
+<br><br><br><br><br>
 
 3.Querying Data
 ---------------
@@ -619,6 +619,8 @@ GET blogs/_search
 -	must: 문서가 모든 필터에 매치될때 (AND)
 -	should: 문서가 하나의 필터라도 매치될때 (OR)
 -	must_not: 문서가 필터에 매치되지 않을때 (NOT)
+
+<br><br><br><br><br>
 
 4.Text Analysis and Mappings
 ----------------------------
@@ -1218,7 +1220,7 @@ GET blogs_analyzed/_search
 
 </details>
 
-<br><br>
+<br><br><br><br><br>
 
 5.The Distributed Model
 -----------------------
@@ -1261,6 +1263,8 @@ PUT test
 ```
 
 </details>
+
+<br><br><br><br><br>
 
 6.Troubleshooting Elasticsearch
 -------------------------------
@@ -1553,7 +1557,7 @@ GET test2/_mapping
 
 -	위의 response에서 볼 수 있는것과 같이, **test2** index에 포함된 **date** field의 type은 **text** 인 것을 확인 할 수 있다.</details>
 
-<br><br>
+<br><br><br><br><br>
 
 7.Improving Search Results
 --------------------------
@@ -1914,7 +1918,7 @@ GET blogs/_search
 
 </details>
 
-<br><br>
+<br><br><br><br><br>
 
 8.Aggregating Data
 ------------------
@@ -2293,7 +2297,7 @@ GET logs_server*/_search
 
 </details>
 
-<br><br>
+<br><br><br><br><br>
 
 9.Securing Elasticsearch
 ------------------------
@@ -2384,14 +2388,531 @@ DELETE blogs
 
 -	**blogs_user** 는 권한이 없는 것을 확인 할 수 있다.
 
-<br><br><br>
+<br><br><br><br><br>
 
 10.Best Practices
 -----------------
 
+###### 현재 클러스터의 index 중, 3개의 index가 web access logs를 포함하고 있다. 모든 current indexing이 **logs_server3** 에 되길 원한다고 가정하자. **logs_server** 를 가르키는 alias를 **access_logs_write** 이름으로 정의해 보자.
+
 <details><summary> 정답 </summary>
 
+```shell
+POST _aliases
+{
+  "actions": [
+    {
+      "add": {
+        "index": "logs_server3",
+        "alias": "access_logs_write"
+      }
+    }
+  ]
+}
+```
+
 </details>
+
+<br><br>
+
+###### 총 3개의 web log index인 **log_server*** 를 가르키는 alias를 **access_logs_read** 이름으로 정의해보자
+
+<details><summary> 정답 </summary>
+
+```shell
+POST _aliases
+{
+  "actions": [
+    {
+      "add": {
+        "index": "logs_server*",
+        "alias": "access_logs_read"
+      }
+    }
+  ]
+}
+```
+
+</details>
+
+<br><br>
+
+###### 다음 쿼리를 실행해보고, hit 갯수가 맞는지 확인해보자
+
+```shell
+GET access_logs_read/_search
+```
+
+<br><br>
+
+###### 이름이 **access_logs_template** index template을 정의하자. 이 template은 **logs_server/*** 의 settings와 mappings와 같다. 추가로 **order** 값을 10으로 설정하자.
+
+<details><summary> 정답 </summary>
+
+```shell
+POST _template/access_logs_template
+{
+  "index_patterns": "logs_server*",
+  "order": 10,
+  "settings" : {
+    "index" : {
+      "number_of_shards" : "5",
+      "number_of_replicas" : "1"
+    }
+  }
+  ,
+  "mappings" : {
+    "doc" : {
+      "properties" : {
+        "@timestamp" : {
+          "type" : "date"
+        },
+        "geoip" : {
+          "properties" : {
+            "city_name" : {
+              "type" : "text",
+              "fields" : {
+                "keyword" : {
+                  "type" : "keyword",
+                  "ignore_above" : 256
+                }
+              }
+            },
+            "continent_code" : {
+              "type" : "text",
+              "fields" : {
+                "keyword" : {
+                  "type" : "keyword",
+                  "ignore_above" : 256
+                }
+              }
+            },
+            "country_code2" : {
+              "type" : "text",
+              "fields" : {
+                "keyword" : {
+                  "type" : "keyword",
+                  "ignore_above" : 256
+                }
+              }
+            },
+            "country_code3" : {
+              "type" : "text",
+              "fields" : {
+                "keyword" : {
+                  "type" : "keyword",
+                  "ignore_above" : 256
+                }
+              }
+            },
+            "country_name" : {
+              "type" : "text",
+              "fields" : {
+                "keyword" : {
+                  "type" : "keyword",
+                  "ignore_above" : 256
+                }
+              }
+            },
+            "location" : {
+              "properties" : {
+                "lat" : {
+                  "type" : "float"
+                },
+                "lon" : {
+                  "type" : "float"
+                }
+              }
+            },
+            "region_name" : {
+              "type" : "text",
+              "fields" : {
+                "keyword" : {
+                  "type" : "keyword",
+                  "ignore_above" : 256
+                }
+              }
+            }
+          }
+        },
+        "host" : {
+          "type" : "text",
+          "fields" : {
+            "keyword" : {
+              "type" : "keyword",
+              "ignore_above" : 256
+            }
+          }
+        },
+        "http_version" : {
+          "type" : "text",
+          "fields" : {
+            "keyword" : {
+              "type" : "keyword",
+              "ignore_above" : 256
+            }
+          }
+        },
+        "input" : {
+          "properties" : {
+            "type" : {
+              "type" : "text",
+              "fields" : {
+                "keyword" : {
+                  "type" : "keyword",
+                  "ignore_above" : 256
+                }
+              }
+            }
+          }
+        },
+        "language" : {
+          "properties" : {
+            "code" : {
+              "type" : "text",
+              "fields" : {
+                "keyword" : {
+                  "type" : "keyword",
+                  "ignore_above" : 256
+                }
+              }
+            },
+            "url" : {
+              "type" : "text",
+              "fields" : {
+                "keyword" : {
+                  "type" : "keyword",
+                  "ignore_above" : 256
+                }
+              }
+            }
+          }
+        },
+        "level" : {
+          "type" : "text",
+          "fields" : {
+            "keyword" : {
+              "type" : "keyword",
+              "ignore_above" : 256
+            }
+          }
+        },
+        "method" : {
+          "type" : "text",
+          "fields" : {
+            "keyword" : {
+              "type" : "keyword",
+              "ignore_above" : 256
+            }
+          }
+        },
+        "originalUrl" : {
+          "type" : "text",
+          "fields" : {
+            "keyword" : {
+              "type" : "keyword",
+              "ignore_above" : 256
+            }
+          }
+        },
+        "response_size" : {
+          "type" : "long"
+        },
+        "runtime_ms" : {
+          "type" : "long"
+        },
+        "status_code" : {
+          "type" : "long"
+        },
+        "user_agent" : {
+          "type" : "text",
+          "fields" : {
+            "keyword" : {
+              "type" : "keyword",
+              "ignore_above" : 256
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+</details>
+
+<br><br>
+
+###### **logs_server4** index를 생성하고, 설정이 제대로 적용되었는지 확인해보자.
+
+<details><summary> 정답 </summary>
+
+```shell
+PUT logs_server4
+
+GET logs_server4
+```
+
+</details>
+
+<br><br>
+
+###### **logs_server3** index의 **access_logs_write** alias를 제거하고, **logs_server4** index에서 추가하자.
+
+<details><summary> 정답 </summary>
+
+```shell
+POST _aliases
+{
+  "actions": [
+    {
+      "remove": {
+        "index": "logs_server3",
+        "alias": "access_logs_write"
+      }
+    },
+    {
+      "add": {
+        "index": "logs_server4",
+        "alias": "access_logs_write"
+      }
+    }
+  ]
+}
+```
+
+</details>
+
+<br><br>
+
+###### **access_logs_write** alias를 사용해서, "\_id"를 1로 할당하고 다음의 데이터를 인덱싱해보자. GET을 사용해서 **logs_server4** index에 제대로 값이 인덱싱되었는지 확인해보자.
+
+```shell
+{
+  "@timestamp": "2018-03-21T05:57:19.722Z",
+  "originalUrl": "/blog/logstash-jdbc-input-plugin",
+  "host": "server2",
+  "response_size": 58754,
+  "status_code": 200,
+  "method": "GET",
+  "runtime_ms": 143,
+  "geoip": {
+    "country_code2": "IN",
+    "country_code3": "IN",
+    "continent_code": "AS",
+    "location": {
+      "lon": 77.5833,
+      "lat": 12.9833
+    },
+    "region_name": "Karnataka",
+    "city_name": "Bengaluru",
+    "country_name": "India"
+  },
+  "language": {
+    "url": "/blog/logstash-jdbc-input-plugin",
+    "code": "en-us"
+  },
+  "user_agent": "Amazon CloudFront",
+  "http_version": "1.1",
+  "level": "info"
+}
+```
+
+<details><summary> 정답 </summary>
+
+```shell
+# indexing하기
+PUT access_logs_write/doc/1
+{
+  "@timestamp": "2018-03-21T05:57:19.722Z",
+  "originalUrl": "/blog/logstash-jdbc-input-plugin",
+  "host": "server2",
+  "response_size": 58754,
+  "status_code": 200,
+  "method": "GET",
+  "runtime_ms": 143,
+  "geoip": {
+    "country_code2": "IN",
+    "country_code3": "IN",
+    "continent_code": "AS",
+    "location": {
+      "lon": 77.5833,
+      "lat": 12.9833
+    },
+    "region_name": "Karnataka",
+    "city_name": "Bengaluru",
+    "country_name": "India"
+  },
+  "language": {
+    "url": "/blog/logstash-jdbc-input-plugin",
+    "code": "en-us"
+  },
+  "user_agent": "Amazon CloudFront",
+  "http_version": "1.1",
+  "level": "info"
+}
+
+# 확인해보기
+GET logs_server4/doc/1
+```
+
+</details>
+
+<br><br>
+
+###### 다음 쿼리를 실행해라
+
+```shell
+DELETE my_blogs
+
+PUT my_blogs/_doc/1
+{
+  "id": "1",
+  "title": "Better query execution",
+  "category": "Engineering",
+  "date":"July 15, 2015",
+  "author":{
+    "first_name": "Adrian",
+    "last_name": "Grand",
+    "company": "Elastic"
+  }
+}
+PUT my_blogs/_doc/2
+{
+  "id": "2",
+  "title": "The Story of Sense",
+  "date":"May 28, 2015",
+  "author":{
+    "first_name": "Boaz",
+    "last_name": "Leskes"
+  }
+}
+```
+
+<br><br>
+
+###### bulk API를 사용해서 **my_blogs** index의 document를 다음과 같이 업데이트하고, 추가하자.
+
+-	document 2를 업데이트 하자: "category"의 값을 "Engineering", "author.company"의 값을 "Elastic"
+-	"\_id" 3인 새로운 document를 다음과 함께 인덱싱하자.
+
+```shell
+{
+  "title": "Using Elastic Graph",
+  "category": "Engineering",
+  "date": "May 25, 2016",
+  "author": {
+    "first_name": "Mark",
+    "last_name": "Harwood",
+    "company": "Elastic"
+  }
+}
+```
+
+<details><summary> 정답 </summary>
+
+```shell
+POST my_blogs/_doc/_bulk
+{"update": {"_id":2}}
+{"doc": {"category":"Engineering", "author.company":"Elastic"}}
+{"index": {"_id":3}}
+{"title": "Using Elastic Graph","category": "Engineering","date":"May 25, 2016","author": {"first_name": "Mark","last_name": "Harwood","company": "Elastic"}}
+```
+
+</details>
+
+<br><br>
+
+###### **my_blogs** index에서 **_mget** 을 사용해서 id가 1과 2인 document를 가져오자.
+
+<details><summary> 정답 </summary>
+
+```shell
+GET my_blogs/_doc/_mget
+{
+  "docs":[
+    {"_id":1},
+    {"_id":2}
+  ]
+}
+```
+
+</details>
+
+<br><br>
+
+###### documents in chunk를 가져오기 위해, scroll search를 사용해서 500개의 document를 **blogs** index로 부터 가져오자. 쿼리의 오버헤드를 줄이기 위해 **"_doc"** 로써 document를 정렬하고, timeout을 3분으로 설정하자.
+
+<details><summary> 정답 </summary>
+
+```shell
+GET blogs/_search?scroll=3m
+{
+  "size": 500,
+  "query": {
+    "match_all": {}
+  },
+  "sort": [
+    {
+      "_doc": {
+        "order": "asc"
+      }
+    }
+  ]
+}
+```
+
+</details>
+
+<br><br>
+
+###### 이전 단계에서 scroll search로 부터, 다음 500개의 blog document를 가져오자.
+
+<details><summary> 정답 </summary>
+
+```shell
+GET _search/scroll
+{
+  "scroll": "3m",
+  "scroll_id": "<PUT_YOUR_SCROLL_ID>"
+}
+```
+
+</details>
+
+<br><br>
+
+---
+
+<details><summary> Snapshot part 정리중 </summary>
+
+###### 지금부터 **blogs** index의 snapshot을 해보자. 먼저 es를 중지하자.
+
+-	각 노드에 `mkdir -p /shared_folder/my_repo`를 실행
+-	각 노드의 `elasticsearch.yml`에 `path.repo: /shared_folder/my_repo` 추가
+-	es 재가동
+
+###### kibana console에서 **/shared_folder/my_repo** directory를 **my_local_repo** 이름의 repository로서 등록해 보자.
+
+<details><summary> 정답 </summary>
+
+```shell
+PUT _snapshot/my_local_repo
+{
+  "type":"fs",
+  "settings":{
+    "location": "/shared_folder/my_repo"
+  }
+}
+```
+
+</details>
+
+</details>
+
+---
+
+<br>
 
 \.
 
