@@ -741,10 +741,10 @@ GET tmp_blogs/_mapping
 
 ##### Field Datatype
 
--	**keyword datatype**: 정확한 값으로 검색할때 사용,
+-	**keyword datatype**(Query context): 정확한 값으로 검색할때 사용,
 	-	sorting 가능, aggregation 가능, analyze 불가능
 	-	ex) email address, hostname, status code, zip code, tag (filtering, ex: `status`가 `published`인 모든 blog포스트를 찾을때)
--	**text datatypes**: full-text로 인덱싱되는 필드타입, `analyzer`를 통해 단어로 검색가능하도록 인덱싱 됨
+-	**text datatypes**(Filter context): full-text로 인덱싱되는 필드타입, `analyzer`를 통해 단어로 검색가능하도록 인덱싱 됨
 	-	sorting 불가능, aggregation 불가능, analyze 가능
 	-	ex) email본문, 상품설명
 
