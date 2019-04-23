@@ -619,6 +619,7 @@ GET blogs/_search
 -	must: 문서가 모든 필터에 매치될때 (AND)
 -	should: 문서가 하나의 필터라도 매치될때 (OR)
 -	must_not: 문서가 필터에 매치되지 않을때 (NOT)
+-	should가 없는 query에선 "correct"한 답을 얻기 힘들다. 그치만 **should** clause를 각 field("category","content","title")에 추가하면 적절한 top hit을 결과값으로 확인할 수 있다.
 
 <br><br><br><br><br>
 
@@ -760,7 +761,7 @@ GET tmp_blogs/_mapping
 -	category: 검색 필요, 일반적으로 카테고리는 드랍다운메뉴 또는 리스트, 고로 **keyword** 로 설정
 -	content: 정렬(sorting)과 집계(aggregation)가 필요없음, 고로 **text** 로 설정
 -	url: 일반 string이므로 **text**, 하지만 검색과 정렬이 필요할지모르니 `fields` parameter를 사용해 **keyword** 추가 설정
--	locales:
+-	locales: fixed string의 array이다. 검색할 필요성 없다. **keyword** 만으로 설정
 
 </details>
 
